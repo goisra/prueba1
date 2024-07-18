@@ -2,16 +2,30 @@
 session_start();
 include 'includes/db.php';
 
-if (!isset($_SESSION['username'])) {
+if (!isset($_SESSION['username']) || $_SESSION['user_type'] != 'user') {
     header("Location: login.php");
     exit();
 }
 
-$product_id = $_GET['id'];
-$user_id = $_SESSION['user_id'];
+$username = $_SESSION['username'];
+$query = "SELECT id FROM users WHERE username='$username'";
+$result = mysqli_query($conn, $query);
+$user = mysqli_fetch_assoc($result);
+$user_id = $user['id'];
 
-$query = "INSERT INTO cart (user_id, product_id, quantity) VALUES ('$user_id', '$product_id', 1)";
-mysqli_query($conn, $query);
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $product_id = $_POST['product_id'];
+    $quantity = $_POST['quantity'];
 
-header("Location: cart.php");
+    $query = "SELECT * FROM cart WHERE user_id = $user_id AND product_id = $product_id";
+    $result = mysqli_query($conn, $query);
+    if (mysqli_num_rows($result) > 0) {
+        $query = "UPDATE cart SET quantity = quantity + $quantity WHERE user_id = $user_id AND product_id = $product_id";
+    } else {
+        $query = "INSERT INTO cart (user_id, product_id, quantity) VALUES ($user_id, $product_id, $quantity)";
+    }
+    mysqli_query($conn, $query);
+}
+
+header("Location: user.php");
 ?>
