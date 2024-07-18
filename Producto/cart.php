@@ -2,19 +2,19 @@
 session_start();
 include 'includes/db.php';
 
-if (!isset($_SESSION['username'])) {
+if (!isset($_SESSION['username']) || $_SESSION['user_type'] != 'user') {
     header("Location: login.php");
     exit();
 }
 
-$user_id = $_SESSION['user_id'];
-
-$query = "SELECT cart.id, products.name, products.price, cart.quantity FROM cart 
-          JOIN products ON cart.product_id = products.id 
-          WHERE cart.user_id = '$user_id'";
+$username = $_SESSION['username'];
+$query = "SELECT id FROM users WHERE username='$username'";
 $result = mysqli_query($conn, $query);
+$user = mysqli_fetch_assoc($result);
+$user_id = $user['id'];
 
-$total = 0;
+$query = "SELECT c.id, p.name, p.price, c.quantity FROM cart c JOIN products p ON c.product_id = p.id WHERE c.user_id = $user_id";
+$result = mysqli_query($conn, $query);
 ?>
 
 <!DOCTYPE html>
@@ -27,23 +27,32 @@ $total = 0;
 <body>
     <h1>Carrito de Compras</h1>
     <table>
-        <tr>
-            <th>Producto</th>
-            <th>Precio</th>
-            <th>Cantidad</th>
-            <th>Total</th>
-        </tr>
-        <?php while ($row = mysqli_fetch_assoc($result)): ?>
+        <thead>
             <tr>
-                <td><?php echo $row['name']; ?></td>
-                <td>$<?php echo $row['price']; ?></td>
-                <td><?php echo $row['quantity']; ?></td>
-                <td>$<?php echo $row['price'] * $row['quantity']; ?></td>
+                <th>Producto</th>
+                <th>Precio</th>
+                <th>Cantidad</th>
+                <th>Total</th>
             </tr>
-            <?php $total += $row['price'] * $row['quantity']; ?>
-        <?php endwhile; ?>
+        </thead>
+        <tbody>
+            <?php
+            $total = 0;
+            while ($row = mysqli_fetch_assoc($result)) {
+                $total += $row['price'] * $row['quantity'];
+                echo "<tr>
+                        <td>{$row['name']}</td>
+                        <td>\${$row['price']}</td>
+                        <td>{$row['quantity']}</td>
+                        <td>\$".($row['price'] * $row['quantity'])."</td>
+                      </tr>";
+            }
+            ?>
+        </tbody>
     </table>
     <h2>Total: $<?php echo $total; ?></h2>
     <a href="checkout.php">Proceder al Pago</a>
+    <a href="user.php">Continuar Comprando</a>
+    <a href="logout.php">Cerrar Sesión</a>
 </body>
 </html>
